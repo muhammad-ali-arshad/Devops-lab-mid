@@ -127,11 +127,16 @@ pipeline {
                     echo "Could not determine commit author email: ${err.message}"
                 }
 
-                if (authorEmail ==~ /^[A-Za-z0-9.!#$%&'*+\\/=?^`{|}~-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$/ &&
-                    !authorEmail.toLowerCase().contains('noreply')) {
+                // A GitHub noreply address is not deliverable to the author.
+                def usableAuthorEmail = authorEmail.contains('@') &&
+                    !authorEmail.contains(' ') &&
+                    !authorEmail.contains('\\n') &&
+                    !authorEmail.toLowerCase().contains('noreply')
+
+                if (usableAuthorEmail) {
                     recipients.add(authorEmail)
                 } else {
-                    echo 'Git author email missing, invalid, or a no-reply address; notifying professor only.'
+                    echo 'Git author email missing or not deliverable; notifying professor only.'
                 }
 
                 mail to: recipients.unique().join(','),
