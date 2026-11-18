@@ -11,10 +11,6 @@ pipeline {
     triggers {
         githubPush()
     }
-    parameters {
-        booleanParam(name: 'PUSH_DOCKERHUB', defaultValue: false,
-                     description: 'Optional: push Docker image to Docker Hub (requires Jenkins credentials)')
-    }
     environment {
         IMAGE = 'ali024024/devops-lab-mid'
         CONTAINER = 'midterm-fa23-bds-024'
@@ -93,8 +89,7 @@ pipeline {
                 '''
             }
         }
-        stage('Optional Docker Hub push') {
-            when { expression { return params.PUSH_DOCKERHUB } }
+        stage('Publish updated model image to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-ali024024',
                                   usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_TOKEN')]) {
@@ -103,7 +98,6 @@ pipeline {
                         printf '%s' "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin
                         docker push "$IMAGE:$REVISION"
                         docker push "$IMAGE:latest"
-                        docker logout
                     '''
                 }
             }
