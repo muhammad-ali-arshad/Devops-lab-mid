@@ -112,11 +112,32 @@ pipeline {
     post {
         always {
             script {
-                // Jenkins > Manage Jenkins > System > E-mail Notification must be configured.
-                mail to: 'qasimalik@gmail.com',
+                // The instructor must always receive the grading notification.
+                // Also notify the latest Git commit author when a usable email is available.
+                def recipients = ['qasimalik@gmail.com']
+                def authorEmail = ''
+                try {
+                    if (fileExists('.git')) {
+                        authorEmail = sh(
+                            script: 'git log -1 --format=%ae',
+                            returnStdout: true
+                        ).trim()
+                    }
+                } catch (Exception err) {
+                    echo "Could not determine commit author email: ${err.message}"
+                }
+
+                if (authorEmail ==~ /^[A-Za-z0-9.!#$%&'*+\\/=?^`{|}~-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$/ &&
+                    !authorEmail.toLowerCase().contains('noreply')) {
+                    recipients.add(authorEmail)
+                } else {
+                    echo 'Git author email missing, invalid, or a no-reply address; notifying professor only.'
+                }
+
+                mail to: recipients.unique().join(','),
                      from: env.SENDER_EMAIL,
                      subject: "${env.STUDENT_ID} Jenkins build ${currentBuild.currentResult}: ${env.BUILD_NUMBER}",
-                     body: "Student: ${env.STUDENT_ID}\nResult: ${currentBuild.currentResult}\nCommit: ${env.REVISION ?: 'not checked out'}\nGitHub: https://github.com/muhammad-ali-arshad/Devops-lab-mid\nMetrics: http://${env.EC2_PUBLIC_IP}:8000/metrics\nJob: ${env.BUILD_URL}\n"
+                     body: "Student: ${env.STUDENT_ID}\\nResult: ${currentBuild.currentResult}\\nCommit author: ${authorEmail ?: 'unavailable'}\\nCommit: ${env.REVISION ?: 'not checked out'}\\nGitHub: https://github.com/muhammad-ali-arshad/Devops-lab-mid\\nMetrics: http://${env.EC2_PUBLIC_IP}:8000/metrics\\nJob: ${env.BUILD_URL}\\n"
             }
         }
     }
