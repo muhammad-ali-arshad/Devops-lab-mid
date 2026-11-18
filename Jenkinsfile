@@ -112,9 +112,8 @@ pipeline {
     post {
         always {
             script {
-                // The instructor must always receive the grading notification.
-                // Also notify the latest Git commit author when a usable email is available.
-                def recipients = ['qasimalik@gmail.com']
+                // Notify only the latest Git commit author.
+                // GitHub noreply addresses cannot receive SMTP notifications.
                 def authorEmail = ''
                 try {
                     if (fileExists('.git')) {
@@ -127,22 +126,19 @@ pipeline {
                     echo "Could not determine commit author email: ${err.message}"
                 }
 
-                // A GitHub noreply address is not deliverable to the author.
                 def usableAuthorEmail = authorEmail.contains('@') &&
                     !authorEmail.contains(' ') &&
-                    !authorEmail.contains('\\n') &&
                     !authorEmail.toLowerCase().contains('noreply')
 
                 if (usableAuthorEmail) {
-                    recipients.add(authorEmail)
+                    echo "Notifying commit author: ${authorEmail}"
+                    mail to: authorEmail,
+                         from: env.SENDER_EMAIL,
+                         subject: "${env.STUDENT_ID} Jenkins build ${currentBuild.currentResult}: ${env.BUILD_NUMBER}",
+                         body: "Student: ${env.STUDENT_ID}\nResult: ${currentBuild.currentResult}\nCommit author: ${authorEmail}\nCommit: ${env.REVISION ?: 'not checked out'}\nGitHub: https://github.com/muhammad-ali-arshad/Devops-lab-mid\nMetrics: http://${env.EC2_PUBLIC_IP}:8000/metrics\nJob: ${env.BUILD_URL}\n"
                 } else {
-                    echo 'Git author email missing or not deliverable; notifying professor only.'
+                    echo "No deliverable email for latest commit author; notification skipped."
                 }
-
-                mail to: recipients.unique().join(','),
-                     from: env.SENDER_EMAIL,
-                     subject: "${env.STUDENT_ID} Jenkins build ${currentBuild.currentResult}: ${env.BUILD_NUMBER}",
-                     body: "Student: ${env.STUDENT_ID}\\nResult: ${currentBuild.currentResult}\\nCommit author: ${authorEmail ?: 'unavailable'}\\nCommit: ${env.REVISION ?: 'not checked out'}\\nGitHub: https://github.com/muhammad-ali-arshad/Devops-lab-mid\\nMetrics: http://${env.EC2_PUBLIC_IP}:8000/metrics\\nJob: ${env.BUILD_URL}\\n"
             }
         }
     }
