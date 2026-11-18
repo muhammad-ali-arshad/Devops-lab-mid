@@ -91,7 +91,7 @@ pipeline {
         }
         stage('Publish updated model image to Docker Hub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-ali024024',
+                withCredentials([usernamePassword(credentialsId: 'dockerhub',
                                   usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_TOKEN')]) {
                     sh '''
                         set +x
