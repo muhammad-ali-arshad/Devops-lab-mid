@@ -1,0 +1,10 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+*.pem
+.env
+artifacts
+README.md
+REPORT_CHECKLIST.md
